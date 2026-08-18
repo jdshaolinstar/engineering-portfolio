@@ -72,11 +72,17 @@ Deploy = push to `main`. GitHub Pages serves the repo root directly, no CI/build
 
 ## Pilot mode (`pilot.js`)
 
-An opt-in easter egg — **desktop only** (`min-width: 900px`, `pointer: fine`,
-`hover: hover`), never affects default scrolling/navigation, respects
-`prefers-reduced-motion` (module no-ops entirely if set).
+**Auto-starts on desktop** (`min-width: 900px`, `pointer: fine`, `hover: hover`
+— same check gates the toggle button's visibility). This was a deliberate
+scope change from the original "opt-in only" design (see git history) — made
+explicitly at Jermaine's request after he'd tried the opt-in version and
+wanted it as the default entry experience. Still fully skipped under
+`prefers-reduced-motion` (module no-ops entirely if set), and never disables
+normal scrolling/clicking — everything still works with the mouse/scroll
+wheel exactly as if pilot mode didn't exist.
 
-- Toggle button bottom-right: "🚀 Fly the page" → click to activate.
+- Toggle button bottom-right: "🚀 Fly the page" / "🛬 Land" → click to
+  manually stop or relaunch (auto-start only fires once, at page load).
 - **W A S D** — fly a small canvas-drawn ship around; A/D and W/S apply
   spring/friction physics (`ACCEL`/`FRICTION`/`MAX_SPEED` constants). Ship
   rotates to face its direction of travel (`atan2` + smoothed turn).
@@ -100,6 +106,15 @@ An opt-in easter egg — **desktop only** (`min-width: 900px`, `pointer: fine`,
   once off-screen.
 - **Esc** or clicking the toggle again exits cleanly: removes listeners,
   clears `.is-buzzed`, hides canvas, restores button label/state.
+- **Hint text** ("W A S D to fly...") does not fade on a timer - it stays
+  visible until the player has accumulated `HINT_DISMISS_MS` (10s) of real
+  time actually holding W/A/S/D, tracked via per-frame delta time
+  (`performance.now()` diff each `update()` call), not wall-clock time since
+  load. If they never touch the controls, it just stays up. Once dismissed
+  (`hintDismissed = true`), it won't reappear even across a manual
+  stop/restart via the toggle in the same page session.
+- Ship handling speed: `ACCEL`/`MAX_SPEED` were halved once already (0.7->0.35,
+  9->4.5) per feedback that default felt too fast to control precisely.
 - Pauses (ship freezes, no scroll) while the video lightbox is open
   (`body.lightbox-open` check), so it doesn't fight with video playback.
 - `SCROLL_SPEED` has been tuned twice already based on real hands-on feedback
