@@ -271,7 +271,9 @@
     canvas.classList.add('is-active');
     toggle.textContent = '🛬 Land';
     toggle.setAttribute('aria-pressed', 'true');
-    if (!hintDismissed) hint.classList.add('is-visible');
+    wasdActiveMs = 0;
+    hintDismissed = false;
+    hint.classList.add('is-visible');
 
     resize();
     resetShip();
