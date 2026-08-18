@@ -14,10 +14,15 @@
   let raf = null;
   let tick = 0;
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let lastFrameTime = null;
+  let wasdActiveMs = 0;
+  let hintDismissed = false;
 
-  const ACCEL = 0.7;
+  const HINT_DISMISS_MS = 10000;
+
+  const ACCEL = 0.35;
   const FRICTION = 0.9;
-  const MAX_SPEED = 9;
+  const MAX_SPEED = 4.5;
   const SCROLL_SPEED = 9;
   const MARGIN = 40;
   const TURN_RATE = 0.18;
@@ -95,6 +100,19 @@
   function update() {
     tick += 1;
 
+    const now = performance.now();
+    const dt = lastFrameTime ? now - lastFrameTime : 16.67;
+    lastFrameTime = now;
+
+    const flying = keys.has('w') || keys.has('a') || keys.has('s') || keys.has('d');
+    if (flying && !hintDismissed) {
+      wasdActiveMs += dt;
+      if (wasdActiveMs >= HINT_DISMISS_MS) {
+        hintDismissed = true;
+        hint.classList.remove('is-visible');
+      }
+    }
+
     if (document.body.classList.contains('lightbox-open')) {
       ship.vx *= FRICTION;
       ship.vy *= FRICTION;
@@ -131,10 +149,9 @@
       ship.angle += diff * TURN_RATE;
     }
 
-    const thrusting = keys.has('w') || keys.has('a') || keys.has('s') || keys.has('d');
     const speed = Math.hypot(ship.vx, ship.vy);
-    if (thrusting || speed > 0.5) {
-      const count = thrusting ? 2 : 1;
+    if (flying || speed > 0.5) {
+      const count = flying ? 2 : 1;
       for (let i = 0; i < count; i++) {
         particles.push({
           x: ship.x - 14 + (Math.random() - 0.5) * 6,
@@ -254,11 +271,11 @@
     canvas.classList.add('is-active');
     toggle.textContent = '🛬 Land';
     toggle.setAttribute('aria-pressed', 'true');
-    hint.classList.add('is-visible');
-    window.setTimeout(() => hint.classList.remove('is-visible'), 3500);
+    if (!hintDismissed) hint.classList.add('is-visible');
 
     resize();
     resetShip();
+    lastFrameTime = null;
     toggle.blur();
 
     window.addEventListener('resize', resize);
@@ -289,4 +306,7 @@
     if (active) stop();
     else start();
   });
+
+  const isDesktop = window.matchMedia('(min-width: 900px) and (pointer: fine) and (hover: hover)').matches;
+  if (isDesktop) start();
 })();
