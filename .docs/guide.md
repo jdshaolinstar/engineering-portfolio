@@ -87,11 +87,17 @@ An opt-in easter egg — **desktop only** (`min-width: 900px`, `pointer: fine`,
   every animation frame (this was a real bug: made flight feel ~20x slower
   than intended). If `SCROLL_SPEED` ever needs retuning again, remember the
   perceived speed is now the *true* speed — no hidden damping.
-- Flying over any `.media` element (a video/image card) adds `.is-buzzed`,
-  which draws a cyan glow outline via CSS.
-- **Space / Enter** while overlapping a buzzed card clicks that card's
-  `.media__play` button, opening the lightbox — lets you "land on" a project
-  to open it.
+- Flying over any `.media` element (video/image card) or `.project__link`
+  (the "Try SuperJay" / "See Remi" / 3D Cloud links) adds `.is-buzzed`, drawn
+  as a cyan glow via CSS.
+- **Space / Enter**: if a target is currently buzzed (direct overlap), clicks
+  it immediately (opens the lightbox, or follows the link). Otherwise fires a
+  small glowing orb from the ship's nose in its current facing direction —
+  the orb travels each frame and checks point-containment against every
+  `.media`/`.project__link` rect; on any hit it clicks that target and clears
+  **all** in-flight orbs (so a volley can't double-open something, e.g. spawn
+  two new tabs off the same link). Orbs expire after `ORB_MAX_AGE` frames or
+  once off-screen.
 - **Esc** or clicking the toggle again exits cleanly: removes listeners,
   clears `.is-buzzed`, hides canvas, restores button label/state.
 - Pauses (ship freezes, no scroll) while the video lightbox is open
@@ -103,6 +109,18 @@ An opt-in easter egg — **desktop only** (`min-width: 900px`, `pointer: fine`,
   actually pressing keys over automated timing measurements). Current value:
   `9`. If it still feels off, that's the constant to adjust — round-trip with
   Jermaine testing on localhost before committing.
+- **Watch out for this class of bug again:** don't build a "does this match
+  X.is-buzzed OR Y.is-buzzed" check as a template string over a comma
+  selector, e.g. `` `${'.media, .project__link'}.is-buzzed` ``. That produces
+  `.media, .project__link.is-buzzed` — `.is-buzzed` only binds to the last
+  clause, so `.media` alone (unconditional) matches instantly. This exact bug
+  shipped once already (`activateBuzzed()`/`clearBuzzed()` used
+  `` `${TARGET_SELECTOR}.is-buzzed` ``, so Space always "hit" the first video
+  on the page regardless of ship position). Fix was a separate
+  `BUZZED_SELECTOR` constant with `.is-buzzed` written explicitly on each
+  clause. If adding more target types later, extend `BUZZED_SELECTOR`
+  the same explicit way — don't reintroduce the templated-comma-selector
+  shortcut.
 
 ## Known-good workflow for changes
 
