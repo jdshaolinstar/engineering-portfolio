@@ -9,6 +9,7 @@
   const keys = new Set();
   const ship = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, renderY: 0 };
   let particles = [];
+  let orbs = [];
   let active = false;
   let raf = null;
   let tick = 0;
@@ -20,6 +21,10 @@
   const SCROLL_SPEED = 9;
   const MARGIN = 40;
   const TURN_RATE = 0.18;
+  const ORB_SPEED = 15;
+  const ORB_MAX_AGE = 150;
+  const TARGET_SELECTOR = '.media, .project__link';
+  const BUZZED_SELECTOR = '.media.is-buzzed, .project__link.is-buzzed';
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -36,6 +41,7 @@
     ship.vx = 0;
     ship.vy = 0;
     particles = [];
+    orbs = [];
   }
 
   function onKeyDown(e) {
@@ -45,7 +51,7 @@
     }
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      activateBuzzed();
+      if (!activateBuzzed()) fireOrb();
       return;
     }
     const k = e.key.toLowerCase();
@@ -55,9 +61,27 @@
     }
   }
 
+  function clickable(el) {
+    return el.matches('.project__link') ? el : el.querySelector('.media__play');
+  }
+
   function activateBuzzed() {
-    const buzzed = document.querySelector('.media.is-buzzed .media__play');
-    if (buzzed) buzzed.click();
+    const buzzed = document.querySelector(BUZZED_SELECTOR);
+    if (!buzzed) return false;
+    const target = clickable(buzzed);
+    if (!target) return false;
+    target.click();
+    return true;
+  }
+
+  function fireOrb() {
+    orbs.push({
+      x: ship.x + Math.cos(ship.angle) * 24,
+      y: ship.renderY + Math.sin(ship.angle) * 24,
+      vx: Math.cos(ship.angle) * ORB_SPEED,
+      vy: Math.sin(ship.angle) * ORB_SPEED,
+      age: 0,
+    });
   }
 
   function onKeyUp(e) {
@@ -65,7 +89,7 @@
   }
 
   function clearBuzzed() {
-    document.querySelectorAll('.media.is-buzzed').forEach((el) => el.classList.remove('is-buzzed'));
+    document.querySelectorAll(BUZZED_SELECTOR).forEach((el) => el.classList.remove('is-buzzed'));
   }
 
   function update() {
@@ -136,7 +160,7 @@
       top: ship.renderY - 16,
       bottom: ship.renderY + 16,
     };
-    document.querySelectorAll('.media').forEach((el) => {
+    document.querySelectorAll(TARGET_SELECTOR).forEach((el) => {
       const r = el.getBoundingClientRect();
       const overlap = !(
         shipBox.right < r.left ||
@@ -146,6 +170,32 @@
       );
       el.classList.toggle('is-buzzed', overlap);
     });
+
+    orbs.forEach((o) => {
+      o.x += o.vx;
+      o.y += o.vy;
+      o.age += 1;
+    });
+    orbs = orbs.filter(
+      (o) => o.age < ORB_MAX_AGE && o.x > -20 && o.x < window.innerWidth + 20 && o.y > -20 && o.y < window.innerHeight + 20
+    );
+
+    for (const o of orbs) {
+      let hitEl = null;
+      for (const el of document.querySelectorAll(TARGET_SELECTOR)) {
+        const r = el.getBoundingClientRect();
+        if (o.x >= r.left && o.x <= r.right && o.y >= r.top && o.y <= r.bottom) {
+          hitEl = el;
+          break;
+        }
+      }
+      if (hitEl) {
+        const target = clickable(hitEl);
+        orbs = [];
+        if (target) target.click();
+        break;
+      }
+    }
   }
 
   function draw() {
@@ -156,6 +206,16 @@
       ctx.fillStyle = `rgba(150, 158, 172, ${Math.max(p.life, 0) * 0.5})`;
       ctx.arc(p.x, p.y, Math.max(p.size, 0), 0, Math.PI * 2);
       ctx.fill();
+    });
+
+    orbs.forEach((o) => {
+      ctx.beginPath();
+      ctx.fillStyle = '#4de1ee';
+      ctx.shadowColor = '#4de1ee';
+      ctx.shadowBlur = 10;
+      ctx.arc(o.x, o.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     });
 
     ctx.save();

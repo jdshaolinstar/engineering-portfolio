@@ -549,3 +549,9 @@ body.lightbox-open { overflow: hidden; }
   box-shadow: 0 0 28px 2px rgba(77, 225, 238, 0.35);
   transition: box-shadow 0.15s ease;
 }
+
+.project__link.is-buzzed {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  text-shadow: 0 0 10px rgba(77, 225, 238, 0.7);
+}
