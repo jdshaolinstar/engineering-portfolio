@@ -388,6 +388,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .section--contact { text-align: center; }
 .contact { display: flex; flex-direction: column; align-items: center; }
 .contact h2 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); max-width: 620px; margin-bottom: 34px; }
+.contact__actions { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
 
 /* ---------------------------------------------------
    Lightbox
