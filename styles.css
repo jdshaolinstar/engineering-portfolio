@@ -456,9 +456,15 @@ body.lightbox-open { overflow: hidden; }
 @media (max-width: 640px) {
   .lightbox { padding: 0; }
   .lightbox__dialog { width: 100%; }
-  .lightbox__frame { border-radius: 0; border-width: 0; aspect-ratio: auto; height: 100vh; }
+  .lightbox__frame {
+    border-radius: 0; border-width: 0; aspect-ratio: auto;
+    height: 100vh;
+    height: 100dvh; /* tracks the browser's address/toolbar chrome so controls never land offscreen */
+  }
   .lightbox__close {
     top: 14px; right: 14px;
+    top: max(14px, env(safe-area-inset-top));
+    right: max(14px, env(safe-area-inset-right));
     width: 42px; height: 42px;
     background: rgba(11, 13, 16, 0.85);
     border-color: var(--cyan);
