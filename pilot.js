@@ -10,6 +10,7 @@
   const ship = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, renderY: 0 };
   let particles = [];
   let orbs = [];
+  let asteroids = [];
   let active = false;
   let raf = null;
   let tick = 0;
@@ -17,6 +18,9 @@
   let lastFrameTime = null;
   let wasdActiveMs = 0;
   let hintDismissed = false;
+  let asteroidMax = 0;
+  let asteroidDocHeight = 0;
+  let asteroidRespawnMs = 0;
 
   const HINT_DISMISS_MS = 10000;
 
@@ -28,6 +32,10 @@
   const TURN_RATE = 0.18;
   const ORB_SPEED = 15;
   const ORB_MAX_AGE = 150;
+  const ASTEROID_SPACING = 217;
+  const ASTEROID_MARGIN = 60;
+  const HEADER_HEIGHT = 70;
+  const ASTEROID_RESPAWN_MS = 10000;
   const TARGET_SELECTOR = '.media, .project__link';
   const BUZZED_SELECTOR = '.media.is-buzzed, .project__link.is-buzzed';
 
@@ -47,6 +55,39 @@
     ship.vy = 0;
     particles = [];
     orbs = [];
+  }
+
+  function makeAsteroid(pageY) {
+    const size = 9 + Math.random() * 12;
+    const points = 7 + Math.floor(Math.random() * 3);
+    const jag = [];
+    for (let p = 0; p < points; p++) jag.push(0.7 + Math.random() * 0.5);
+    return {
+      pageY,
+      x: ASTEROID_MARGIN + Math.random() * (window.innerWidth - ASTEROID_MARGIN * 2),
+      size,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.02,
+      bobSeed: Math.random() * 1000,
+      jag,
+    };
+  }
+
+  function generateAsteroids() {
+    asteroidDocHeight = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+    asteroidMax = Math.max(6, Math.round(asteroidDocHeight / ASTEROID_SPACING));
+    asteroidRespawnMs = 0;
+    asteroids = [];
+    for (let i = 0; i < asteroidMax; i++) {
+      const pageY = (i + 0.5 + (Math.random() - 0.5) * 0.6) * (asteroidDocHeight / asteroidMax);
+      asteroids.push(makeAsteroid(pageY));
+    }
+  }
+
+  function topUpAsteroids() {
+    while (asteroids.length < asteroidMax) {
+      asteroids.push(makeAsteroid(Math.random() * asteroidDocHeight));
+    }
   }
 
   function onKeyDown(e) {
@@ -213,10 +254,75 @@
         break;
       }
     }
+
+    asteroidRespawnMs += dt;
+    if (asteroidRespawnMs >= ASTEROID_RESPAWN_MS) {
+      asteroidRespawnMs = 0;
+      topUpAsteroids();
+    }
+
+    const scrollY = window.scrollY;
+    asteroids.forEach((a) => {
+      a.rot += a.rotSpeed;
+      a.screenY = a.pageY - scrollY + Math.sin(tick * 0.03 + a.bobSeed) * 4;
+    });
+
+    const hitAsteroidIdx = new Set();
+    orbs.forEach((o) => {
+      for (let i = 0; i < asteroids.length; i++) {
+        if (hitAsteroidIdx.has(i)) continue;
+        const a = asteroids[i];
+        if (a.screenY < HEADER_HEIGHT || a.screenY > window.innerHeight + 60) continue;
+        const dist = Math.hypot(o.x - a.x, o.y - a.screenY);
+        if (dist < a.size + 6) {
+          hitAsteroidIdx.add(i);
+          o.spent = true;
+          for (let d = 0; d < 8; d++) {
+            particles.push({
+              x: a.x,
+              y: a.screenY,
+              vx: (Math.random() - 0.5) * 4,
+              vy: (Math.random() - 0.5) * 4,
+              life: 1,
+              size: 2 + Math.random() * 2,
+            });
+          }
+          break;
+        }
+      }
+    });
+    if (hitAsteroidIdx.size) {
+      orbs = orbs.filter((o) => !o.spent);
+      asteroids = asteroids.filter((_, i) => !hitAsteroidIdx.has(i));
+    }
   }
 
   function draw() {
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    asteroids.forEach((a) => {
+      if (a.screenY < HEADER_HEIGHT || a.screenY > window.innerHeight + 60) return;
+      ctx.save();
+      ctx.translate(a.x, a.screenY);
+      ctx.rotate(a.rot);
+      ctx.beginPath();
+      const n = a.jag.length;
+      for (let p = 0; p < n; p++) {
+        const ang = (p / n) * Math.PI * 2;
+        const r = a.size * a.jag[p];
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r;
+        if (p === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(90, 98, 112, 0.55)';
+      ctx.strokeStyle = 'rgba(150, 158, 172, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    });
 
     particles.forEach((p) => {
       ctx.beginPath();
@@ -277,6 +383,7 @@
 
     resize();
     resetShip();
+    generateAsteroids();
     lastFrameTime = null;
     toggle.blur();
 
