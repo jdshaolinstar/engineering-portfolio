@@ -122,7 +122,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
     max-height: 0; overflow: hidden;
     transition: max-height 0.25s ease;
   }
-  .nav.is-open { max-height: 320px; }
+  .nav.is-open { max-height: 80vh; overflow-y: auto; }
   .nav a { padding: 16px 28px; border-bottom: 1px solid var(--line); }
   .nav__cta { border-radius: 0; text-align: center; }
 }
@@ -316,6 +316,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   padding: 5px 11px;
   border-radius: 999px;
 }
+.project__links { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; }
 .project__link {
   display: inline-block;
   margin-top: 18px;
@@ -326,6 +327,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   border-bottom: 1px solid var(--cyan-dim);
 }
 .project__link:hover { color: var(--paper); border-color: var(--paper); }
+.project__links .project__link { margin-top: 0; }
 
 @media (max-width: 860px) {
   .project--feature { grid-template-columns: 1fr; gap: 24px; }
@@ -484,3 +486,4 @@ body.lightbox-open { overflow: hidden; }
 }
 .site-footer a { text-decoration: none; color: var(--dim); }
 .site-footer a:hover { color: var(--cyan); }
+.site-footer__links { display: flex; gap: 20px; }
