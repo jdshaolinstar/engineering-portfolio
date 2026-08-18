@@ -106,15 +106,41 @@ wheel exactly as if pilot mode didn't exist.
   once off-screen.
 - **Esc** or clicking the toggle again exits cleanly: removes listeners,
   clears `.is-buzzed`, hides canvas, restores button label/state.
-- **Hint text** ("W A S D to fly...") does not fade on a timer - it stays
-  visible until the player has accumulated `HINT_DISMISS_MS` (10s) of real
-  time actually holding W/A/S/D, tracked via per-frame delta time
-  (`performance.now()` diff each `update()` call), not wall-clock time since
-  load. If they never touch the controls, it just stays up. Once dismissed
-  (`hintDismissed = true`), it won't reappear even across a manual
-  stop/restart via the toggle in the same page session.
+- **Hint text** is three explicit lines (`<br>` in the markup, not
+  width-dependent wrapping): controls, what Space does (spelled out - it
+  either opens what you're on or fires at something in range - don't
+  compress this back into a vague "open/fire"), and a reassurance that mouse
+  and scrolling still work normally (important since pilot mode auto-starts;
+  non-gamers shouldn't feel like control was taken away from them). It does
+  not fade on a timer - stays visible until the player accumulates
+  `HINT_DISMISS_MS` (10s) of real time actually holding W/A/S/D, tracked via
+  per-frame delta time, not wall-clock time since load. `start()` resets both
+  `wasdActiveMs` and `hintDismissed` every time (including manual
+  relaunch via the toggle), so landing and flying again always shows the
+  hint fresh with its own 10s window - don't let that regress to "once per
+  page load" again.
 - Ship handling speed: `ACCEL`/`MAX_SPEED` were halved once already (0.7->0.35,
   9->4.5) per feedback that default felt too fast to control precisely.
+- **Asteroids**: small jagged rocks (`makeAsteroid()`) scattered across the
+  *entire* document height, not just the hero - deliberate choice, since
+  pilot mode already flies the whole page, confining them to the hero would
+  leave the other ~95% of the flight empty by comparison. Density is one per
+  `ASTEROID_SPACING` (217px of scroll height) - tripled from an initial
+  ~650px pass per feedback. Orbs destroy them on contact (small debris burst
+  via the shared `particles` array); unlike hitting a video/link, destroying
+  an asteroid only consumes that one orb, not the whole volley, since there's
+  no double-open risk. Every `ASTEROID_RESPAWN_MS` (10s) of real time,
+  `topUpAsteroids()` refills back to the original target count
+  (`asteroidMax`) if any were destroyed, so a long flight doesn't permanently
+  deplete the field. Regenerated fresh every `start()` call (same as the hint
+  timer), using `document.documentElement.scrollHeight` read at that moment.
+  **Real bug already hit and fixed here:** the header is `position: sticky`
+  (always pinned at the top of the viewport regardless of scroll position),
+  so any asteroid whose scroll-adjusted screen Y fell within the header's
+  band rendered on top of the nav. Both the draw loop and the orb-collision
+  loop skip asteroids with `screenY < HEADER_HEIGHT` for this reason - don't
+  replace that with a plain off-screen-margin check (e.g. `< -60`), which is
+  what caused the bug the first time.
 - Pauses (ship freezes, no scroll) while the video lightbox is open
   (`body.lightbox-open` check), so it doesn't fight with video playback.
 - `SCROLL_SPEED` has been tuned twice already based on real hands-on feedback
